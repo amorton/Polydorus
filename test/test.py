@@ -14,9 +14,6 @@ import random
 from telephus.protocol import ManagedCassandraClientFactory, ManagedThriftClientProtocol
 from telephus.cassandra.ttypes import *
 from telephus.client import CassandraClient
-# import lib
-# from lib.types import PhoneNumber
-# from netaddr.ip import IPAddress
 
 from polydorus import Model
 from polydorus.attributes import *
@@ -35,20 +32,11 @@ def connect(keyspace='system', hosts=['localhost:9160'], connections=5, consiste
 
 
 
-# class Test2RichAttr(RichAttribute):
-#     class Meta:
-#         indices = ({'attributes': ('id', 'timestamp'), 'compound_key': False}, {'attributes': ('id', 'attr2'), 'compound_key': True})
-#     
-#     timestamp = IntegerAttribute()
-#     attr1 = StringAttribute()
-#     attr2 = IntegerAttribute()
-
 class TestModel2(Model):
     class Meta:
         column_family = 'test2'
 
     name = StringAttribute(indexed=True)
-#     ra_test = Test2RichAttr()
     
 class TestModel1(Model):
     class Meta:
@@ -75,8 +63,6 @@ class TestModel1(Model):
     long_test = LongAttribute(indexed=True)
     write_once_test = IntegerAttribute(write_once=True)
     ip_test = IPAddressAttribute(indexed=True)
-#     encrypted_test = EncryptedStringAttribute()
-#     phone_test = PhoneNumberAttribute()
 
 keyspace = 'PolydorusTrial'
 
@@ -115,36 +101,6 @@ def tear_down(cassandra_client, manager):
         c.cancel()
     reactor.removeAll()
 
-# class RichAttrTest(unittest.TestCase):
-#     '''Test cases for models'''
-#     timeout = 25
-#     
-#     @inlineCallbacks
-#     def setUp(self):
-#         Configuration.cassandra_client = connect()
-#         
-#         yield reset_keyspace(Configuration.cassandra_client)
-#         
-#         t2 = TestModel2(name='Test2')
-#         yield t2.save()
-#         self.test2_id = t2.id
-#         self.failUnless(isinstance(self.test2_id, uuid.UUID))
-#             
-#     @inlineCallbacks
-#     def tearDown(self):
-#         yield tear_down(Configuration.cassandra_client, self.manager)
-# 
-#     @inlineCallbacks
-#     def test_append_rich_attributes(self):
-#         i = yield TestModel2.get(self.test2_id)
-#         i.ra_test.update([{'timestamp': 1, 'attr1': 'test1', 'attr2': 100}, {'timestamp': 2, 'attr1': 'test2', 'attr2': 200}])
-#         yield i.save()
-#         
-#         i = yield TestModel2.get(self.test2_id)
-#         ra = yield i.ra_test()
-#         print ra
-#         self.failUnlessEquals(ra, "{1: {'attr2': 100, 'attr1': u'test1'}, 2: {'attr2': 200, 'attr1': u'test2'}}")
-    #test_get.skip = '...'
     
 
 class ModelTest(unittest.TestCase):
@@ -155,20 +111,14 @@ class ModelTest(unittest.TestCase):
     def setUp(self):
         Configuration.cassandra_client, self.manager = connect()
         
-        
-#         keyspace_def = KsDef(name=keyspace, replication_factor=1, strategy_class='org.apache.cassandra.locator.SimpleStrategy', cf_defs=cf_defs)
-        
         try:
-#             print 'dropping keyspace... just in case'
             yield Configuration.cassandra_client.set_keyspace('system')
             yield Configuration.cassandra_client.system_drop_keyspace(keyspace)
         except Exception as e:
             pass
 
         try:
-#             print 'adding keyspace'
             yield Configuration.cassandra_client.system_add_keyspace(keyspace_def)
-#             print 'keyspace added'
         except Exception as e:
             print 'keyspace already exists!!!?', e
         
@@ -208,7 +158,6 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(i.first_name, u'Матфей')
         self.failUnlessEquals(i.last_name, u'Вильямс')
         self.failUnlessEquals(i.bool_test, True)
-    #test_get.skip = '...'
     
     
     @inlineCallbacks
@@ -242,8 +191,6 @@ class ModelTest(unittest.TestCase):
         i.int_test = '15'
         i.bool_test = False
         i.ip_test = '192.168.0.1'
-#         i.encrypted_test = 'Secret'
-#         i.phone_test = '+16362536840'
         
         self.failUnlessEqual(i.duration, 3600)
 
@@ -273,9 +220,6 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(i.int_test, 15)
         self.failUnlessEqual(i.duration, 3600)
         self.failUnlessEqual(str(i.ip_test), '192.168.0.1')
-#         self.failUnlessEqual(str(i.encrypted_test), 'Secret')
-#         self.failUnlessEqual(str(i.phone_test), '+16362536840')
-#         self.failUnlessEqual(i.phone_test.parts, ('1', '636', '2536840'))
         self.failUnlessEqual(i.long_pin, long_pin)
 
         self.failUnlessEqual(date_created, i.date_created)
@@ -284,7 +228,6 @@ class ModelTest(unittest.TestCase):
         modified_diff = (i.date_modified - date_created).seconds
         self.failUnless(modified_diff < 6 and modified_diff > 1)
 
-#     test_insert_mutate.skip = '...'
 
     @inlineCallbacks
     def test_insert_with_missing_foreign_key(self):
@@ -295,7 +238,6 @@ class ModelTest(unittest.TestCase):
         except:
             pass
             
-#     @inlineCallbacks
     def test_modify_date_created_and_modified(self):
         try:
             i = TestModel1(first_name=u'Матфей', last_name=u'Вильямс', date_created='2010-10-21T14:44:33Z')
