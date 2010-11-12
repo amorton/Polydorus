@@ -1,0 +1,19 @@
+Polydorus
+========
+
+Description
+-----------
+
+Polydorus is a lightweight ORM stacked on top of Telephus (http://www.github.com/driftx/Telephus) for Cassandra.
+
+Installation
+------------
+
+Prerequisites:
+
+ * Telephus (latest unstable for now)
+
+Usage
+-----
+
+See tests/test.py for an example of how to use Polydorus.
