@@ -15,7 +15,7 @@ from telephus.protocol import ManagedCassandraClientFactory, ManagedThriftClient
 from telephus.cassandra.ttypes import *
 from telephus.client import CassandraClient
 
-from polydorus import Model
+from polydorus import RowModel, ColumnModel
 from polydorus.attributes import *
 from polydorus.utils import generate_cfdef
 from polydorus.configuration import Configuration
@@ -31,19 +31,40 @@ def connect(keyspace='system', hosts=['localhost:9160'], connections=5, consiste
 	return (client, manager)
 
 
+class TestRowModel(RowModel):
+    foo = UUIDAttribute(read_only=True, row_key=True)
+    date_created = DateTimeAttribute(read_only=True, indexed=True)
+    date_modified = DateTimeAttribute(read_only=True, indexed=True)
+    
+    def _pre_save(self):
+        super(TestRowModel, self)._pre_save()
+        now = datetime.datetime.now(tz=utc).replace(microsecond=0)
+        self._setattr('date_modified', now, filter=False)
+        if self._is_new:
+            self._setattr('date_created', now, filter=False)
 
-class TestModel2(Model):
+
+class TestColumnModel(ColumnModel):
+    class Meta(ColumnModel.Meta):
+        column_family = 'col_test'
+    
+    test2_id = UUIDAttribute(row_key=True)
+    id = UUIDAttribute(column_key=True)
+    int_test = IntegerAttribute()
+    long_test = LongAttribute()
+    
+                    
+class TestModel2(TestRowModel):
     class Meta:
         column_family = 'test2'
-
     name = StringAttribute(indexed=True)
-    
-class TestModel1(Model):
+
+class TestModel1(TestRowModel):
     class Meta:
         column_family = 'test1'
     
     def date_test2_input_filter(self, value):
-        self._attribute_values['duration'] = (value - self.date_test).seconds
+        self._setattr('duration', (value - self.date_test).seconds, filter=False)
         return value
 
     def generate_long_pin(self):
@@ -58,7 +79,7 @@ class TestModel1(Model):
     date_test = DateTimeAttribute(indexed=True)
     date_test2 = DateTimeAttribute(indexed=True, input_filter=date_test2_input_filter)
     duration = LongAttribute(indexed=True, read_only=True)
-    long_pin = StringAttribute(indexed=True, before_save=generate_long_pin)
+    long_pin = StringAttribute(indexed=True, pre_save=generate_long_pin)
     int_test = IntegerAttribute(indexed=True)
     long_test = LongAttribute(indexed=True)
     write_once_test = IntegerAttribute(write_once=True)
@@ -68,6 +89,7 @@ keyspace = 'PolydorusTrial'
 
 cf_defs = generate_cfdef(TestModel1, keyspace)
 cf_defs.extend(generate_cfdef(TestModel2, keyspace))
+cf_defs.extend(generate_cfdef(TestColumnModel, keyspace))
 keyspace_def = KsDef(name=keyspace, replication_factor=1, strategy_class='org.apache.cassandra.locator.SimpleStrategy', cf_defs=cf_defs)
 
 @inlineCallbacks
@@ -88,12 +110,12 @@ def reset_keyspace(cassandra_client):
     except Exception as e:
         print 'keyspace was not set!!!', e
         raise e
-
+        
 @inlineCallbacks
 def tear_down(cassandra_client, manager):
     try:
         yield cassandra_client.set_keyspace('system')
-        yield cassandra_client.system_drop_keyspace(keyspace)
+#         yield cassandra_client.system_drop_keyspace(keyspace)
     except Exception as e:
         print 'Couldnt drop keyspace', e
     yield manager.shutdown()
@@ -131,19 +153,19 @@ class ModelTest(unittest.TestCase):
         
         t2 = TestModel2(name='Test2')
         yield t2.save()
-        self.test2_id = t2.id
+        self.test2_id = t2.foo
         self.failUnless(isinstance(self.test2_id, uuid.UUID))
         
         t1 = TestModel1(test2_id=self.test2_id, first_name=u'Матфей', last_name=u'Вильямс')
         yield t1.save()
-        self.test1_id = t1.id
+        self.test1_id = t1.foo
         self.failUnless(isinstance(self.test2_id, uuid.UUID))
-    
+            
     @inlineCallbacks
     def tearDown(self):
         try:
             yield Configuration.cassandra_client.set_keyspace('system')
-            yield Configuration.cassandra_client.system_drop_keyspace(keyspace)
+#             yield Configuration.cassandra_client.system_drop_keyspace(keyspace)
         except Exception as e:
             print 'Couldnt drop keyspace', e
         yield self.manager.shutdown()
@@ -152,9 +174,22 @@ class ModelTest(unittest.TestCase):
         reactor.removeAll()
     
     @inlineCallbacks
+    def test_column_model(self):
+        id = uuid.uuid1()
+        m = TestColumnModel(test2_id=self.test2_id, id=id, int_test=123, long_test = 123L)
+        yield m.save()
+    
+        m = yield TestColumnModel.get(self.test2_id, id)
+        
+        self.failUnlessEquals(m.test2_id, self.test2_id)
+        self.failUnlessEquals(m.id, id)
+        self.failUnlessEquals(m.int_test, 123)
+        self.failUnlessEquals(m.long_test, 123L)
+    
+    @inlineCallbacks
     def test_get(self):
         i = yield TestModel1.get(self.test1_id)
-        self.failUnlessEquals(i.id, self.test1_id)
+        self.failUnlessEquals(i.foo, self.test1_id)
         self.failUnlessEquals(i.first_name, u'Матфей')
         self.failUnlessEquals(i.last_name, u'Вильямс')
         self.failUnlessEquals(i.bool_test, True)
@@ -165,7 +200,7 @@ class ModelTest(unittest.TestCase):
         i = TestModel1(test2_id=self.test2_id, first_name=u'Матфей', last_name=u'Вильямс', write_once_test=1)
         date_created = datetime.datetime.now(tz=utc).replace(microsecond=0)
         yield i.save()
-        id = i.id
+        id = i.foo
         long_pin = i.long_pin
         self.failUnless(isinstance(self.test2_id, uuid.UUID))
         self.failUnless(len(long_pin) == 10)
@@ -176,7 +211,7 @@ class ModelTest(unittest.TestCase):
         
         
         i = yield TestModel1.get(id)
-        self.failUnlessEquals(i.id, id)
+        self.failUnlessEquals(i.foo, id)
         
         created_diff = (date_created - i.date_created).seconds
         modified_diff = (date_created - i.date_modified).seconds

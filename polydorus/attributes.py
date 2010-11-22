@@ -23,15 +23,15 @@ from query import Query
 IndexOperator.NE = -1
 
 class GenericAttribute(object):
-    """This is used to denote a attribute in a Model"""
+    """This is used to denote an attribute in a Model"""
     default = None
     indexed = False
     required = False
-    _type = str
-    _db_type = str
     read_only = False
     write_once = False
-    rich_kid = False
+    
+    _type = str
+    _db_type = str
     _model_class = None
     
     def __init__(self, *args, **kwargs):
@@ -84,14 +84,14 @@ class GenericAttribute(object):
     # Filter input when properties are set
     def input_filter(self, model, value): return value
     
-    def before_save(self, model): pass
+    def pre_save(self, model): pass
 
-    def after_save(self, model): pass
+    def post_save(self, model): pass
     
     def filter_input(self, model, value):
         if self.read_only:
             raise Exception("Cannot write to a read-only attribute.")
-        elif self.write_once and model.id is not None:
+        elif self.write_once and not model._is_new:
             raise Exception("Cannot update a write-once attribute.")
         elif self.required and value is None:
             raise TypeError('Property can not be null for "%s" column' % (self.name))

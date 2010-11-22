@@ -25,6 +25,7 @@ class QueryResult(object):
     def total(self):
         return self._count
 
+
 class Query(object):
     """Usage: 
         expression = IndexExpression(MyModel.name, IndexOperator.EQ, other)
@@ -37,15 +38,18 @@ class Query(object):
     _sorts = []
     _offset = None
     _limit = None
+    _attributes = []
     
-    def __init__(self, cls, expression=None, sort=None):
+    def __init__(self, cls, expression=None, sort=None, attributes=None):
         self._model_class = cls
         self._expressions = [expression] if expression else []
         self._sorts = [sort] if sort else []
+        self._attributes = [attributes] if attributes else []
         
     def __and__(self, other):
         self._expressions.extend(other._expressions)
         self._sorts += other._sorts
+        self._attributes += other._attributes
         self._offset = other._offset or self._offset
         self._limit = other._limit or self._limit
         return self
@@ -54,10 +58,13 @@ class Query(object):
         return self & Query(self._model_class, expression=expression)
         
     def __str__(self):
-        return "Query object (expressions: %s; sorts: %s; offset: %s, limit: %s)" % (self._expressions, self._sorts, self._offset, self._limit)
+        return "Query object (expressions: %s; sorts: %s; offset: %s, limit: %s, attributes: %s)" % (self._expressions, self._sorts, self._offset, self._limit, self._attributes)
 
     def sort(self, sort):
         return self & Query(self._model_class, sort=sort)
+        
+    def attributes(self, attributes):
+        return self & Query(self._model_class, attributes=attributes)
         
     def offset(self, new_offset):
         self._offset = new_offset

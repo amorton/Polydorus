@@ -26,14 +26,14 @@ def generate_cfdef(cls, keyspace):
                     
                 column_def = ColumnDef(name=key, validation_class='org.apache.cassandra.db.marshal.' + validator, index_type=index_type, index_name=index_name)
                 column_defs.append(column_def)
-        cf_defs.append(CfDef(keyspace=keyspace, name=cls.Meta.column_family, comparator_type=cls.Meta.comparator_type, subcomparator_type=cls.Meta.subcomparator_type, column_metadata=column_defs))
+        cf_defs.append(CfDef(keyspace=keyspace, name=cls.Meta.column_family, comparator_type=cls.Meta.comparator_type, column_metadata=column_defs))
         
-        for name, rich_attr in cls._rich_attributes.items():
-            for primary, secondary in rich_attr.Meta.indices:
-                idx_part = '%s_and_%s' % (primary, secondary)
-                cf_name = '%s_by_%s' % (rich_attr.Meta.base_name, idx_part)
-                cf_defs.append(CfDef(keyspace=keyspace, name=cf_name))
-                
+#         for name, rich_attr in cls._rich_attributes.items():
+#             for primary, secondary in rich_attr.Meta.indices:
+#                 idx_part = '%s_and_%s' % (primary, secondary)
+#                 cf_name = '%s_by_%s' % (rich_attr.Meta.base_name, idx_part)
+#                 cf_defs.append(CfDef(keyspace=keyspace, name=cf_name))
+#                 
         return cf_defs
         
         
