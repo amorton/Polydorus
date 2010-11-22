@@ -185,6 +185,8 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(m.id, id)
         self.failUnlessEquals(m.int_test, 123)
         self.failUnlessEquals(m.long_test, 123L)
+        
+        
     
     @inlineCallbacks
     def test_get(self):
