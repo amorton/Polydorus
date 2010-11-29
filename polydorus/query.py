@@ -15,13 +15,20 @@ class QueryResult(object):
         
     def __getslice__(self, i, j):
         return self._results[i:j]
+        
+    def __getitem__(self, key):
+        return self._results[key]
 
     def __str__(self):
         if self._count is None:
             return "Empty QueryResult object"
         else:
             return "QueryResult object (total results: %s)" % (self._count)
+            
+    def __len__(self):
+        return len(self._results)
 
+    @property
     def total(self):
         return self._count
 

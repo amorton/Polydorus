@@ -3,3 +3,5 @@
 *.cache
 _trial_temp
 build
+
+.rsync

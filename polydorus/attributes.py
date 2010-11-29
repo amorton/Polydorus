@@ -226,39 +226,3 @@ class RichAttributeMeta(type):
             delattr(self, k)
 
 
-
-class RichAttribute(object):
-    id = UUIDAttribute()
-    __metaclass__ = RichAttributeMeta
-    
-    def search(self, proxy, *args, **kwargs):
-        raise NotImplementedError("search method must be implemented by the subclass")
-
-    def update(self, proxy, data):
-        proxy._staged_data.extend(data)
-    
-    def mutation_map(self, proxy):
-        raise NotImplementedError("mutation_map method must be implemented by the subclass")
-    
-    
-class RichAttributeProxy(object):
-    _search_cache = {}
-    _staged_data = {}
-    
-    def __init__(self, parent, attribute):
-        self._parent = parent
-        self._attribute = attribute
-    
-    def __call__(self, *args, **kwargs):
-        search_key = kwargs
-        results = self._attribute.search(self, *args, **kwargs)
-        self_search_cache[search_key] = results
-        return results
-            
-    def update(self, data):
-        self._attribute.update(self, data)
-        
-    def mutation_map(self):
-        return self._attribute.mutation_map()
-                    
-            

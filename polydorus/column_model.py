@@ -21,7 +21,8 @@ from base_model import BaseModel, BaseModelMeta
 class ColumnModelMeta(BaseModelMeta):
     def __init__(cls, name, bases, attrs):
         if getattr(cls.Meta, 'comparator_type', None) is None:
-            raise Exception('comparator_type not specified in model')
+            # class Meta is not inherited if it is redefined in a subclass
+            setattr(cls.Meta, 'comparator_type', 'BytesType')
 
         super(ColumnModelMeta, cls).__init__(name, bases, attrs)
         for k, v in cls._attributes.items():

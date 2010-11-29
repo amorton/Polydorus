@@ -316,7 +316,7 @@ class ModelTest(unittest.TestCase):
             yield m2.save()
             
         search_results = yield TestModel1.filter(TestModel1.first_name == 'John').execute()
-        self.failUnlessEquals(search_results.total(), 50)
+        self.failUnlessEquals(search_results.total, 50)
         self.failUnlessEquals(len(search_results), 25)
         for r in search_results:
             self.failUnlessEquals(r.last_name, 'Jacob')

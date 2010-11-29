@@ -97,7 +97,10 @@ class BaseModel(object):
         
         
     def __getattr__(self, name):
-        v = self._attribute_values[name]
+        if name not in self._attributes:
+            raise AttributeError('%s not a property of %s' % (name, type(self)))
+            
+        v = self._attribute_values[name] if name in self._attribute_values else None
         return v
         
     def _setattr_from_db(self, name, value):
@@ -142,7 +145,7 @@ class BaseModel(object):
         
         for k, a in self._attributes.items():
             if a.required and self._attribute_values[k] is None:
-                raise Exception("%s is required." % name)
+                raise Exception("%s is required." % k)
         
         mutation_map = self._mutation_map_for_save()
         yield configuration.cassandra_client.batch_mutate(mutation_map)
