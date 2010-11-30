@@ -56,7 +56,7 @@ class RowModel(BaseModel):
             returnValue(False)
             yield
         else:
-            yield configuration.cassandra_client.remove(self._row_key[1].bytes, self.Meta.column_family)
+            yield configuration.cassandra_client.remove(getattr(self, self._row_key[0]).bytes, self.Meta.column_family)
             self._setattr(self._row_key[0], None, filter=False)
             self._setattr('date_modified', None, filter=False)
             self._setattr('date_created', None, filter=False)
