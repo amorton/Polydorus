@@ -178,6 +178,10 @@ class ModelTest(unittest.TestCase):
         id = uuid.uuid1()
         m = TestColumnModel(test2_id=self.test2_id, id=id, int_test=123, long_test = 123L)
         yield m.save()
+        
+        id2 = uuid.uuid1()
+        m2 = TestColumnModel(test2_id=self.test2_id, id=id2, int_test=124, long_test = 124L)
+        yield m.save()
     
         m = yield TestColumnModel.get(self.test2_id, id)
         
@@ -186,6 +190,10 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(m.int_test, 123)
         self.failUnlessEquals(m.long_test, 123L)
         
+        rs = yield TestColumnModel.get(self.test2_id)
+        self.failUnlessEquals(len(rs), 2)
+        for r in rs:
+            self.failUnless(r.id in (id, id2))
         
     
     @inlineCallbacks

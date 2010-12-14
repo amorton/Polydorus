@@ -71,16 +71,25 @@ class ColumnModel(BaseModel):
 
     @classmethod
     @inlineCallbacks
-    def get(cls, row_key, column_key, configuration=Configuration):
-        names = [cls._pack_column(column_key, x) for x,v in cls._attributes.items() if not x in (cls._row_key[0], cls._column_key[0])]
+    def get(cls, row_key, column_key=None, configuration=Configuration):
+        if column_key is not None:
+            # Get a single column object
+            names = [cls._pack_column(column_key, x) for x,v in cls._attributes.items() if not x in (cls._row_key[0], cls._column_key[0])]
                 
-        record = yield configuration.cassandra_client.get_slice(row_key.bytes, cls.Meta.column_family, names=names)
+            record = yield configuration.cassandra_client.get_slice(row_key.bytes, cls.Meta.column_family, names=names)
                 
-        if record == []:
-            returnValue(None)
-        o = cls._result_to_instance(row_key, column_key, record)
-        o._post_get()
-        returnValue(o)
+            if record == []:
+                returnValue(None)
+            o = cls._result_to_instance(row_key, column_key, record)
+            o._post_get()
+            returnValue(o)
+        else:
+            # Get all column objects for row
+            cols = yield configuration.cassandra_client.get_slice(row_key.bytes, cls.Meta.column_family)
+            os = cls._result_to_instances(row_key, cols)
+            for o in os:
+                o._post_get()
+            returnValue(os)
 
 
     @inlineCallbacks
@@ -98,7 +107,7 @@ class ColumnModel(BaseModel):
                 o._setattr_from_db(name, column.column.value)
         return o
 
-    
+    @classmethod
     def _result_to_instances(cls, row_key, result):
         results = {}
         for column in result:
@@ -112,7 +121,7 @@ class ColumnModel(BaseModel):
                 
             if name not in (o._row_key[0], o._column_key[0]):
                 o._setattr_from_db(name, column.column.value)
-        return results
+        return results.values()
         
         
 #     @classmethod
@@ -130,15 +139,25 @@ class ColumnModel(BaseModel):
     @classmethod
     @inlineCallbacks
     def execute_query(cls, query=None, configuration=Configuration):
-
         if query is None:
-            raise Exception('query is None!')        
+            raise Exception('query is None!')
         
+        # Debug
+        # for e in query._expressions:
+        #     print e
+        #     
+        # return
         
-        for e in query._expressions:
-            print e
-            
-        return
+        # From .get
+        # names = [cls._pack_column(column_key, x) for x,v in cls._attributes.items() if not x in (cls._row_key[0], cls._column_key[0])]
+        #         
+        # record = yield configuration.cassandra_client.get_slice(row_key.bytes, cls.Meta.column_family, names=names)
+        #         
+        # if record == []:
+        #     returnValue(None)
+        # o = cls._result_to_instance(row_key, column_key, record)
+        # o._post_get()
+        # returnValue(o)
         
         row_key, kwargs = cls._slice_def_for_query(query)
         
