@@ -141,7 +141,7 @@ class BaseModel(object):
         for k, p in self._attributes.items():
             yield defer.maybeDeferred(p.pre_save, self)
 
-        self._pre_save()
+        yield defer.maybeDeferred(self._pre_save)
         
         for k, a in self._attributes.items():
             if a.required and self._attribute_values[k] is None:
