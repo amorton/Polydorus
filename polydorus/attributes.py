@@ -101,7 +101,7 @@ class GenericAttribute(object):
             
     def validate(self, value):
         value = self._coerce(value)
-        if value is not None and self._type is not None:
+        if value is not None:
             if not isinstance(value, self._type):
                 raise TypeError('Attribute "%s" needs to be type: %s (got %s)' % (self.name, self._type, type(value)))
         return value
@@ -202,7 +202,10 @@ class DecimalAttribute(GenericAttribute):
         
 class JSONAttribute(GenericAttribute):
     _type = None
-    _db_type = str
+    _db_type = unicode
+    
+    def validate(self, value):
+        return value
     
     def _coerce(self, value):
         return value
