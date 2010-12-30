@@ -84,6 +84,7 @@ class TestModel1(TestRowModel):
     long_test = LongAttribute(indexed=True)
     write_once_test = IntegerAttribute(write_once=True)
     ip_test = IPAddressAttribute(indexed=True)
+    json_test = JSONAttribute()
 
 keyspace = 'PolydorusTrial'
 
@@ -157,6 +158,7 @@ class ModelTest(unittest.TestCase):
         self.failUnless(isinstance(self.test2_id, uuid.UUID))
         
         t1 = TestModel1(test2_id=self.test2_id, first_name=u'Матфей', last_name=u'Вильямс')
+        t1.json_test = {'a':1, 'b':[1,2,3]}
         yield t1.save()
         self.test1_id = t1.foo
         self.failUnless(isinstance(self.test2_id, uuid.UUID))
@@ -191,7 +193,7 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(m.long_test, 123L)
         
         rs = yield TestColumnModel.get(self.test2_id)
-        self.failUnlessEquals(len(rs), 2)
+        self.failUnlessEquals(len(rs), 1)
         for r in rs:
             self.failUnless(r.id in (id, id2))
         
@@ -203,6 +205,7 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(i.first_name, u'Матфей')
         self.failUnlessEquals(i.last_name, u'Вильямс')
         self.failUnlessEquals(i.bool_test, True)
+        self.failUnlessEquals(i.json_test, {'a':1, 'b':[1,2,3]})
     
     
     @inlineCallbacks

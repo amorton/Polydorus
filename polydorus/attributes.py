@@ -19,6 +19,7 @@ from operator import attrgetter, itemgetter
 from types import *
 import utils
 from query import Query
+import json
 
 IndexOperator.NE = -1
 
@@ -100,7 +101,7 @@ class GenericAttribute(object):
             
     def validate(self, value):
         value = self._coerce(value)
-        if value is not None:
+        if value is not None and self._type is not None:
             if not isinstance(value, self._type):
                 raise TypeError('Attribute "%s" needs to be type: %s (got %s)' % (self.name, self._type, type(value)))
         return value
@@ -198,6 +199,19 @@ class DecimalAttribute(GenericAttribute):
         
     def _coerce_to_db(self, value):
         return None if value is None else `long(value * decimal.Decimal(long(math.pow(10, self.decimal_places))))`
+        
+class JSONAttribute(GenericAttribute):
+    _type = None
+    _db_type = str
+    
+    def _coerce(self, value):
+        return value
+            
+    def _coerce_from_db(self, value):
+        return json.loads(value)
+
+    def _coerce_to_db(self, value):
+        return json.dumps(value)
         
 class EmailAttribute(StringAttribute):
     _regex = re.compile(r"(?:^|\s)[-a-z0-9_.]+@(?:[-a-z0-9]+\.)+[a-z]{2,6}(?:\s|$)", re.IGNORECASE)
