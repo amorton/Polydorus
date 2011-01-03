@@ -58,7 +58,8 @@ class ColumnModel(BaseModel):
     
     def _mutation_map_for_save(self):
         insert_dict = {}
-        for k, p in self._attributes.items():
+        for k in self._dirty:
+        #for k, p in self._attributes.items():
             v = self._attribute_values[k]
             if k not in (self._row_key[0], self._column_key[0]):
                 insert_dict[self._pack_column(getattr(self, self._column_key[0]), k)] = self._getattr_for_db(k)
