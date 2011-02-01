@@ -139,7 +139,7 @@ class RowModel(BaseModel):
                 preliminary_columns.append(e.column_name)
                 del query._expressions[i]
                     
-        preliminary_results = yield configuration.cassandra_client.get_indexed_slices(cls.Meta.column_family, query._expressions, names=preliminary_columns, start_key='')
+        preliminary_results = yield configuration.cassandra_client.get_indexed_slices(cls.Meta.column_family, query._expressions, names=preliminary_columns, start_key='', count=configuration.count, column_count=configuration.column_count)
         
         preliminary_results = [cls._result_to_dict(r.key, r.columns) for r in preliminary_results]
         
