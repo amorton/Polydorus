@@ -17,7 +17,7 @@ from telephus.client import CassandraClient
 
 from polydorus import RowModel, ColumnModel
 from polydorus.attributes import *
-from polydorus.utils import generate_cfdef
+from polydorus.utils import generate_cfdef, generate_cfdef_cli
 from polydorus.configuration import Configuration
 
 
@@ -63,7 +63,7 @@ class TestModel1(TestRowModel):
     class Meta:
         column_family = 'test1'
     
-    def date_test2_input_filter(self, value):
+    def _date_test2_input_filter(self, value):
         self._setattr('duration', (value - self.date_test).seconds, filter=False)
         return value
 
@@ -77,7 +77,7 @@ class TestModel1(TestRowModel):
     decimal_test = DecimalAttribute(16, 10, indexed=True)
     bool_test = BooleanAttribute(indexed=True, default=True)
     date_test = DateTimeAttribute(indexed=True)
-    date_test2 = DateTimeAttribute(indexed=True, input_filter=date_test2_input_filter)
+    date_test2 = DateTimeAttribute(indexed=True, input_filter=_date_test2_input_filter)
     duration = LongAttribute(indexed=True, read_only=True)
     long_pin = StringAttribute(indexed=True, pre_save=generate_long_pin)
     int_test = IntegerAttribute(indexed=True)
@@ -175,6 +175,15 @@ class ModelTest(unittest.TestCase):
             c.cancel()
         reactor.removeAll()
     
+    def test_cli_script(self):
+        script = generate_cfdef_cli([TestModel1, TestModel2], "Test")
+        
+        self.assertTrue(script.startswith("create keyspace Test"))
+        self.assertTrue(script.find("create column family %s" % (
+            TestModel1.Meta.column_family)) > -1)
+        self.assertTrue(script.find("create column family %s" % (
+            TestModel2.Meta.column_family)) > -1)
+            
     @inlineCallbacks
     def test_column_model(self):
         id = uuid.uuid1()
@@ -196,7 +205,7 @@ class ModelTest(unittest.TestCase):
         self.failUnlessEquals(len(rs), 1)
         for r in rs:
             self.failUnless(r.id in (id, id2))
-        
+    
     
     @inlineCallbacks
     def test_get(self):
@@ -228,7 +237,6 @@ class ModelTest(unittest.TestCase):
         
         created_diff = (date_created - i.date_created).seconds
         modified_diff = (date_created - i.date_modified).seconds
-        
         self.failUnless(created_diff < 1 and created_diff > -1)
         self.failUnless(modified_diff < 1 and modified_diff > -1)
                 
