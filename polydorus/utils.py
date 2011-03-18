@@ -26,7 +26,12 @@ def generate_cfdef(cls, keyspace):
                     
                 column_def = ColumnDef(name=key, validation_class='org.apache.cassandra.db.marshal.' + validator, index_type=index_type, index_name=index_name)
                 column_defs.append(column_def)
-        cf_defs.append(CfDef(keyspace=keyspace, name=cls.Meta.column_family, comparator_type=cls.Meta.comparator_type, column_metadata=column_defs))
+        cf_def = CfDef(keyspace=keyspace, name=cls.Meta.column_family, comparator_type=cls.Meta.comparator_type, column_metadata=column_defs)
+        cf_def.memtable_throughput_in_mb = getattr(cls.Meta, "memtable_throughput_in_mb", 64)
+        cf_def.memtable_flush_after_mins = getattr(cls.Meta, "memtable_flush_after", 1440)
+        cf_def.memtable_operations_in_millions = getattr(cls.Meta, "memtable_operations", 0.25)
+        
+        cf_defs.append(cf_def)
         
 #         for name, rich_attr in cls._rich_attributes.items():
 #             for primary, secondary in rich_attr.Meta.indices:
@@ -37,9 +42,7 @@ def generate_cfdef(cls, keyspace):
         return cf_defs
 
 def generate_cfdef_cli(classes, keyspace, rf=1, 
-    strategy='org.apache.cassandra.locator.SimpleStrategy', 
-    memtable_flush_after=1440, memtable_throughput=64, 
-    memtable_operations=0.3):
+    strategy='org.apache.cassandra.locator.SimpleStrategy'):
     """Generates a cassandra-cli script to build a keyspace that contains 
     column families for all the classes.
     
@@ -47,12 +50,6 @@ def generate_cfdef_cli(classes, keyspace, rf=1,
     :param keyspace: Name for the keyspace.
     :param rf: Replication factor for the keyspace. 
     :param stategy: Name of the replica placement strategy to use. 
-    :param memtable_flush_after: Number of minutes after which a memtable 
-        should be flushed, same value will be used for all column families.
-    :param memtable_throughput: Size in MB to after which a memtable 
-        should be flushed, same value will be used for all column families.
-    :param memtable_operations: Number of operations after which a memtable 
-        should be flushed, same value will be used for all column families.
     """
 
     cf_defs = [generate_cfdef(c, keyspace)[0] for c in classes]
@@ -74,9 +71,9 @@ def generate_cfdef_cli(classes, keyspace, rf=1,
         write("and comparator = %s " % cf_def.comparator_type)
         write("and keys_cached = 0 \n")
         write("and rows_cached = 0 \n")
-        write("and memtable_flush_after = %s \n" % memtable_flush_after)
-        write("and memtable_throughput = %s \n" % memtable_throughput)
-        write("and memtable_operations = %s \n" % memtable_operations)
+        write("and memtable_flush_after = %s \n" % cf_def.memtable_flush_after_mins)
+        write("and memtable_throughput = %s \n" % cf_def.memtable_throughput_in_mb)
+        write("and memtable_operations = %s \n" % cf_def.memtable_operations_in_millions)
         
         if cf_def.column_metadata:
             write("and column_metadata = [")

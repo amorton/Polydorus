@@ -62,7 +62,10 @@ class TestModel2(TestRowModel):
 class TestModel1(TestRowModel):
     class Meta:
         column_family = 'test1'
-    
+        memtable_throughput_in_mb = 6
+        memtable_flush_after = 7
+        memtable_operations = 8
+        
     def _date_test2_input_filter(self, value):
         self._setattr('duration', (value - self.date_test).seconds, filter=False)
         return value
@@ -174,7 +177,14 @@ class ModelTest(unittest.TestCase):
         for c in reactor.getDelayedCalls():
             c.cancel()
         reactor.removeAll()
-    
+
+    def test_generate_cf(self):
+        cf_def = generate_cfdef(TestModel1, "Test")[0]
+        
+        self.assertEqual(6, cf_def.memtable_throughput_in_mb)
+        self.assertEqual(7, cf_def.memtable_flush_after_mins)
+        self.assertEqual(8, cf_def.memtable_operations_in_millions)
+
     def test_cli_script(self):
         script = generate_cfdef_cli([TestModel1, TestModel2], "Test")
         
